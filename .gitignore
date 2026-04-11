@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+build/
+.env.local
+
+# Project specific
+temp/
+*.pdf
+.DS_Store
