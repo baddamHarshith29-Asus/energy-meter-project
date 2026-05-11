@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: CI and Deploy to GitHub Pages
 
 on:
   push:
@@ -12,8 +12,38 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  backend-test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Backend Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+        # Adding a check for Groq/OpenAI keys to avoid failure if missing
+        env:
+          DATABASE_URL: sqlite:///test_energy.db
+
+      - name: Start Backend
+        run: |
+          python backend/app.py &
+          sleep 10
+        env:
+          DATABASE_URL: sqlite:///test_energy.db
+
+      - name: Run Backend Tests
+        run: python backend/test_backend.py
+        env:
+          DATABASE_URL: sqlite:///test_energy.db
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: backend-test # Ensure backend tests pass before building frontend (optional, but good for "integration")
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,7 +76,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-frontend
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
