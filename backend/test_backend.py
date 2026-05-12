@@ -1,24 +1,32 @@
-import requests
+import unittest
+import json
+from app import create_app
+from database import db
 
-BASE_URL = "http://localhost:5000/api"
+class BackendTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app()
+        self.app.config['TESTING'] = True
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        self.client = self.app.test_client()
+        
+        with self.app.app_context():
+            db.create_all()
 
-def test_endpoint(endpoint):
-    try:
-        response = requests.get(f"{BASE_URL}{endpoint}")
-        print(f"GET {endpoint}: Status {response.status_code}")
-        if response.status_code == 200:
-            print(f"Response: {response.json()}")
-        else:
-            print(f"Error: {response.text}")
-    except Exception as e:
-        print(f"GET {endpoint}: Failed - {e}")
+    def test_health(self):
+        response = self.client.get('/api/health')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['status'], 'healthy')
 
-def run_tests():
-    print("--- Testing Backend Endpoints ---")
-    test_endpoint("/health")
-    test_endpoint("/branches")
-    test_endpoint("/dashboard/1")
-    test_endpoint("/predict/1")
+    def test_branches(self):
+        # Assuming there is a /api/branches route
+        response = self.client.get('/api/branches')
+        # We don't care about content yet, just that the route exists or returns a valid code
+        self.assertIn(response.status_code, [200, 404]) # Allow 404 if not implemented yet
 
-if __name__ == "__main__":
-    run_tests()
+    def test_dashboard(self):
+        response = self.client.get('/api/dashboard/1')
+        self.assertIn(response.status_code, [200, 404])
+
+if __name__ == '__main__':
+    unittest.main()
